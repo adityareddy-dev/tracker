@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<title>Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f5f6f4; --ink: #1e2430; --muted: #6f7582; --line: #d6d9d2; --card: #fff;
+  --blue: #2b4c9b; --blue-soft: #dfe6f5; --amber: #b8791a; --red: #b3261e; --grey: #a9aeb8; --green: #2e7d4f;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14171c; --ink: #e6e8ec; --muted: #9aa1ad; --line: #2c313a; --card: #1c2027;
+    --blue: #7c9be6; --blue-soft: #263452; --amber: #d9a24a; --red: #e06c62; --grey: #6b717c; --green: #6dbf8f;
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0 auto; max-width: 760px; padding: 24px 18px 72px; color: var(--ink); background: var(--paper);
+  font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased;
+}
+h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 4px; }
+h2 { font-size: 17px; font-weight: 600; margin: 0; }
+p { margin: 0; }
+.meta { color: var(--muted); font-size: 13px; }
+.horizon { margin-top: 12px; max-width: 60ch; }
+.hidden { display: none !important; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button {
+  border: 1px solid var(--line); background: var(--card); border-radius: 4px; padding: 7px 12px; cursor: pointer;
+}
+button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+button.danger { color: var(--red); }
+button.small { padding: 3px 8px; font-size: 12px; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--blue); outline-offset: 2px;
+}
+input[type=text], input[type=password], input[type=date], textarea, select {
+  width: 100%; border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; background: var(--card);
+}
+textarea { min-height: 160px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+textarea.plain { font-family: inherit; font-size: inherit; min-height: 80px; }
+label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 4px; }
+.panel { border: 1px solid var(--line); background: var(--card); border-radius: 4px; padding: 18px; margin-top: 18px; max-width: 520px; }
+.panel.wide { max-width: none; }
+.msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
+.msg.err { color: var(--red); }
+.msg.ok { color: var(--blue); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 16px; }
+.toolbar .status { font-size: 13px; color: var(--muted); margin-left: auto; }
+.toolbar .status.dirty { color: var(--amber); }
+.toolbar .check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); margin: 0; }
+.toolbar .check input { width: auto; margin: 0; }
+
+.readiness { margin-top: 24px; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.readiness .pct { font-size: 34px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; }
+.readiness .explain { color: var(--muted); font-size: 13px; max-width: 46ch; }
+.countdown { margin-top: 6px; font-size: 13px; color: var(--muted); }
+
+.section { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); }
+.section .lead { font-size: 13px; color: var(--muted); margin: 4px 0 10px; }
+.section header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+
+.criteria { margin-top: 28px; }
+.criteria .lead { font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+@media (min-width: 640px) { .grid { grid-template-columns: repeat(5, 1fr); } }
+.cell {
+  border: 1px solid var(--line); border-radius: 4px; padding: 10px 10px 9px; min-height: 92px;
+  display: flex; flex-direction: column; justify-content: space-between; background: var(--card);
+}
+.cell .name { font-size: 13px; font-weight: 500; line-height: 1.3; }
+.cell .state { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.cell.building { border-color: var(--blue); }
+.cell.building .state { color: var(--blue); }
+.cell.testing { border-color: var(--amber); }
+.cell.testing .state { color: var(--amber); }
+.cell.pending { border-style: dashed; }
+.cell.no, .cell.na { background: transparent; color: var(--muted); }
+.cell.na .name { text-decoration: line-through; text-decoration-color: var(--grey); }
+.mini { height: 4px; background: var(--blue-soft); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.mini span { display: block; height: 100%; background: var(--blue); }
+
+.category { margin-top: 32px; padding-top: 18px; border-top: 1px solid var(--line); }
+.category header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.category .count { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.category .aside { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.category .why { font-size: 13px; color: var(--muted); margin-top: 6px; max-width: 64ch; }
+.bar { display: flex; gap: 3px; margin: 10px 0 14px; }
+.bar i { flex: 1; height: 8px; border-radius: 2px; border: 1px solid var(--grey); background: transparent; }
+.bar i.done { background: var(--blue); border-color: var(--blue); }
+.bar i.closed { background: var(--grey); border-color: var(--grey); }
+.bar i.doing { border-color: var(--amber); background: linear-gradient(90deg, var(--amber) 50%, transparent 50%); }
+.bar i.waiting { border-style: dotted; }
+.bar i.blocked { border-color: var(--red); }
+
+ul.tasks { list-style: none; margin: 0; padding: 0; }
+ul.tasks li {
+  display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; padding: 8px 0;
+  border-top: 1px dashed var(--line); align-items: start;
+}
+ul.tasks li:first-child { border-top: 0; }
+.dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 5px; border: 1.5px solid var(--grey); background: transparent; flex: none; }
+.dot.done { background: var(--blue); border-color: var(--blue); }
+.dot.closed { background: var(--grey); border-color: var(--grey); }
+.dot.doing { border-color: var(--amber); background: linear-gradient(90deg, var(--amber) 50%, transparent 50%); }
+.dot.waiting { border-style: dotted; }
+.dot.blocked { border-color: var(--red); box-shadow: inset 0 0 0 3px var(--card), inset 0 0 0 6px var(--red); }
+.task .name { font-weight: 500; }
+.task .note { color: var(--muted); font-size: 13px; margin-top: 1px; }
+.task .where { color: var(--muted); font-size: 12px; margin-top: 1px; }
+.task.done .name, .task.closed .name { color: var(--muted); font-weight: 400; }
+.when { font-size: 12px; color: var(--muted); white-space: nowrap; padding-top: 3px; text-align: right; }
+.when.blocked { color: var(--red); }
+.when.doing { color: var(--amber); }
+.when.overdue { color: var(--red); }
+.when.soon { color: var(--amber); }
+.when.done { color: var(--green); }
+body.hidedone ul.tasks li.task.done, body.hidedone ul.tasks li.task.closed { display: none; }
+
+body.editing ul.tasks li, body.editing ul.stones li { cursor: pointer; }
+.editor { grid-column: 1 / -1; background: var(--card); border: 1px solid var(--line); border-radius: 4px; padding: 12px; margin-top: 6px; cursor: default; }
+.editor .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.editor label { margin-top: 8px; }
+.editor .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.editor .actions .spacer { flex: 1; }
+.addtask { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+ul.stones { list-style: none; margin: 0; padding: 0; }
+ul.stones li { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 7px 0; border-top: 1px dashed var(--line); align-items: baseline; }
+ul.stones li:first-child { border-top: 0; }
+ul.stones .name { font-weight: 500; }
+ul.stones li.done .name { color: var(--muted); font-weight: 400; text-decoration: line-through; text-decoration-color: var(--grey); }
+
+ul.journal { list-style: none; margin: 0; padding: 0; }
+ul.journal li { display: grid; grid-template-columns: 96px 1fr; gap: 10px; padding: 8px 0; border-top: 1px dashed var(--line); }
+ul.journal li:first-child { border-top: 0; }
+ul.journal .date { font-size: 13px; color: var(--muted); white-space: nowrap; }
+ul.journal .tag { font-size: 12px; color: var(--muted); margin-top: 2px; }
+ul.journal .text { white-space: pre-wrap; }
+ul.journal .editor { grid-column: 1 / -1; }
+.jform { border: 1px solid var(--line); border-radius: 4px; padding: 12px; margin-top: 10px; background: var(--card); }
+.jform .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.jform label { margin-top: 8px; }
+.jform .actions { display: flex; gap: 8px; margin-top: 12px; }
+
+.empty { color: var(--muted); font-size: 13px; }
+.sheet { margin-top: 12px; }
+.key { margin-top: 36px; font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 14px; }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+.key .dot { margin-top: 0; }
+footer { margin-top: 28px; font-size: 12px; color: var(--muted); }
+@media (prefers-reduced-motion: no-preference) { .msg { transition: color .2s; } }
+@media print { .toolbar, .key, footer, .addtask, .jform { display: none !important; } body { max-width: none; } }
+</style>
+</head>
+<body>
+
+<div id="lock" class="hidden">
+  <h1>Tracker</h1>
+  <p class="meta">Private page. Nothing renders without the passphrase.</p>
+  <div class="panel">
+    <label for="pass">Passphrase</label>
+    <input id="pass" type="password" autocomplete="current-password">
+    <div class="toolbar"><button id="unlock" class="primary">Unlock</button></div>
+    <div id="lockmsg" class="msg"></div>
+  </div>
+</div>
+
+<div id="setup" class="hidden">
+  <h1>Tracker</h1>
+  <p class="meta">First run. No data.json in the repo yet. Fill this in once.</p>
+  <div class="panel">
+    <label for="s-pass">Choose a passphrase (the data is encrypted with it before it touches GitHub)</label>
+    <input id="s-pass" type="password" autocomplete="new-password">
+    <label for="s-pass2">Repeat it</label>
+    <input id="s-pass2" type="password" autocomplete="new-password">
+    <label for="s-token">GitHub fine-grained token with Contents read and write on this repo only</label>
+    <input id="s-token" type="password" autocomplete="off">
+    <label for="s-json">Starter JSON (paste progress.json)</label>
+    <textarea id="s-json"></textarea>
+    <div class="toolbar"><button id="create" class="primary">Encrypt and save to the repo</button></div>
+    <div id="setupmsg" class="msg"></div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <h1 id="title"></h1>
+  <p class="meta" id="meta"></p>
+  <p class="horizon" id="horizon"></p>
+  <p class="countdown" id="countdown"></p>
+
+  <div class="toolbar">
+    <button id="edit">Edit</button>
+    <button id="save" class="primary">Save to GitHub</button>
+    <button id="export">Copy JSON</button>
+    <button id="import">Paste JSON</button>
+    <button id="summary">Copy summary</button>
+    <button id="settings">Token</button>
+    <button id="passbtn">Passphrase</button>
+    <button id="lockbtn">Lock</button>
+    <label class="check"><input type="checkbox" id="hidedone"> Hide done</label>
+    <span id="status" class="status"></span>
+  </div>
+  <div id="appmsg" class="msg"></div>
+
+  <div id="importsheet" class="panel wide sheet hidden">
+    <label for="importtext">Paste the full JSON. It replaces what is on screen until you Save.</label>
+    <textarea id="importtext"></textarea>
+    <div class="toolbar"><button id="importgo" class="primary">Load</button><button id="importcancel">Cancel</button></div>
+  </div>
+
+  <div id="tokensheet" class="panel wide sheet hidden">
+    <label for="tokentext">Fine-grained GitHub token for this repo (Contents read and write). Stored only in this browser. Leave blank to clear.</label>
+    <input id="tokentext" type="password" autocomplete="off">
+    <div class="toolbar"><button id="tokengo" class="primary">Save token</button><button id="tokencancel">Cancel</button></div>
+  </div>
+
+  <div id="passsheet" class="panel wide sheet hidden">
+    <label for="newpass">New passphrase (at least 8 characters). Every device will need the new one after the next Save.</label>
+    <input id="newpass" type="password" autocomplete="new-password">
+    <label for="newpass2">Repeat it</label>
+    <input id="newpass2" type="password" autocomplete="new-password">
+    <div class="toolbar"><button id="passgo" class="primary">Change and save</button><button id="passcancel">Cancel</button></div>
+  </div>
+
+  <div class="readiness">
+    <div class="pct" id="pct"></div>
+    <p class="explain" id="explain"></p>
+  </div>
+
+  <section class="section">
+    <header><h2>Next up</h2></header>
+    <p class="lead">In progress, blocked, waiting, and anything dated in the next two weeks.</p>
+    <ul class="tasks" id="nextup"></ul>
+  </section>
+
+  <section class="criteria">
+    <p class="lead">USCIS asks for three of these ten. Four are being built so one can fail.</p>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="section">
+    <header><h2>Milestones</h2><span class="count" id="stonecount"></span></header>
+    <p class="lead">Dated checkpoints. Tap one while editing to change it.</p>
+    <ul class="stones" id="stones"></ul>
+    <div id="stoneadd" class="addtask hidden"><button data-addstone>Add milestone</button></div>
+  </section>
+
+  <div id="categories"></div>
+
+  <section class="section">
+    <header><h2>Journal</h2><span class="count" id="journalcount"></span></header>
+    <p class="lead">Dated evidence log. Decisions, stall points, outcomes, who said what. No employer data.</p>
+    <div id="jform" class="jform hidden">
+      <div class="row">
+        <div><label for="j-date">Date</label><input type="date" id="j-date"></div>
+        <div><label for="j-cat">Workstream</label><select id="j-cat"></select></div>
+      </div>
+      <label for="j-text">Entry</label>
+      <textarea id="j-text" class="plain"></textarea>
+      <div class="actions"><button id="j-add" class="primary">Add entry</button></div>
+    </div>
+    <ul class="journal" id="journal"></ul>
+  </section>
+
+  <div class="key">
+    <span><i class="dot done"></i>done</span>
+    <span><i class="dot doing"></i>in progress</span>
+    <span><i class="dot"></i>not started</span>
+    <span><i class="dot waiting"></i>waiting on someone else</span>
+    <span><i class="dot blocked"></i>blocked</span>
+    <span><i class="dot closed"></i>closed</span>
+  </div>
+  <footer>Encrypted in the browser, stored in data.json in this repo. Edit, then Save to GitHub. Other devices see it after the next page load.</footer>
+</div>
+
+<script>
+// ---------- configuration ----------
+const OWNER = "adityareddy-dev";
+const REPO = "tracker";
+const PATH = "data.json";
+const BRANCH = "main";
+const TOKEN_KEY = "tracker.token." + REPO;
+const CACHE_KEY = "tracker.cache." + REPO;
+const HIDE_KEY = "tracker.hidedone." + REPO;
+
+const STATUS_WORD = { done: "Done", doing: "In progress", todo: "", waiting: "Waiting on someone else", blocked: "Blocked", closed: "Closed" };
+const STATUS_ORDER = ["todo", "doing", "done", "waiting", "blocked", "closed"];
+const CRIT_WORD = { building: "Building", testing: "Testing", pending: "Decision pending", no: "Not pursuing", na: "Not applicable" };
+const SOON_DAYS = 14;
+
+let DATA = null;
+let PASS = null;
+let SHA = null;
+let dirty = false;
+let editing = false;
+let openEditor = null;   // ["task", ci, ti] | ["stone", i] | ["journal", i]
+let loadedFrom = "";
+
+// ---------- crypto ----------
+const enc = new TextEncoder();
+const dec = new TextDecoder();
+const b64 = {
+  enc: (bytes) => { const u = new Uint8Array(bytes); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); },
+  dec: (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0)),
+};
+async function deriveKey(pass, salt) {
+  const base = await crypto.subtle.importKey("raw", enc.encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: 200000, hash: "SHA-256" },
+    base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+async function encryptJSON(obj, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(pass, salt);
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(JSON.stringify(obj)));
+  return { v: 1, salt: b64.enc(salt), iv: b64.enc(iv), ct: b64.enc(ct) };
+}
+async function decryptJSON(payload, pass) {
+  const key = await deriveKey(pass, b64.dec(payload.salt));
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64.dec(payload.iv) }, key, b64.dec(payload.ct));
+  return JSON.parse(dec.decode(pt));
+}
+function utf8ToB64(str) { return b64.enc(enc.encode(str)); }
+function b64ToUtf8(s) { return dec.decode(b64.dec(s.replace(/\n/g, ""))); }
+
+// ---------- github ----------
+function token() { return localStorage.getItem(TOKEN_KEY) || ""; }
+function ghHeaders(extra) {
+  return { Accept: "application/vnd.github+json", ...(token() ? { Authorization: "Bearer " + token() } : {}), ...(extra || {}) };
+}
+async function ghGet() {
+  const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}?ref=${BRANCH}&t=${Date.now()}`, { headers: ghHeaders() });
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error("GitHub read failed (" + r.status + ")");
+  const j = await r.json();
+  SHA = j.sha;
+  return JSON.parse(b64ToUtf8(j.content));
+}
+async function ghPut(payload, message) {
+  if (!token()) throw new Error("No token saved. Tap Token and paste a fine-grained token for this repo.");
+  if (!SHA) { try { await ghGet(); } catch {} }
+  const body = { message, content: utf8ToB64(JSON.stringify(payload)), branch: BRANCH };
+  if (SHA) body.sha = SHA;
+  const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${PATH}`, {
+    method: "PUT",
+    headers: ghHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error("GitHub save failed (" + r.status + "). " + (r.status === 409 || r.status === 422 ? "Someone saved since you loaded. Copy JSON, reload, Paste JSON, then save again." : t.slice(0, 200)));
+  }
+  const j = await r.json();
+  SHA = j.content.sha;
+}
+function cachePut(payload) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(payload)); } catch {} }
+function cacheGet() { try { const s = localStorage.getItem(CACHE_KEY); return s ? JSON.parse(s) : null; } catch { return null; } }
+async function loadPayload() {
+  try { const p = await ghGet(); loadedFrom = "GitHub"; if (p) cachePut(p); return p; }
+  catch (e) {
+    try {
+      // no token or API blocked: fall back to the published copy
+      const r = await fetch(`${PATH}?t=${Date.now()}`, { cache: "no-store" });
+      if (r.status === 404) return null;
+      if (!r.ok) throw e;
+      const p = await r.json(); loadedFrom = "the published page"; cachePut(p); return p;
+    } catch (e2) {
+      const c = cacheGet();
+      if (c) { loadedFrom = "the offline copy on this device"; return c; }
+      throw e2;
+    }
+  }
+}
+
+// ---------- helpers ----------
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function prettyDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+function today() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function daysUntil(iso) {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((new Date(y, m - 1, d) - t) / 86400000);
+}
+function relDays(n) {
+  if (n === null) return "";
+  if (n === 0) return "today";
+  if (n === 1) return "tomorrow";
+  if (n === -1) return "yesterday";
+  if (n < 0) return `${-n} days ago`;
+  if (n < 60) return `in ${n} days`;
+  const months = Math.round(n / 30.4);
+  return `in about ${months} month${months === 1 ? "" : "s"}`;
+}
+function validDate(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s) && daysUntil(s) !== null; }
+function catStats(cat) { const n = cat.tasks.length; const r = cat.tasks.filter(t => t.status === "done" || t.status === "closed").length; return [r, n]; }
+function overall() {
+  let done = 0, total = 0;
+  for (const c of DATA.categories) { if (!c.counts) continue; const [r, n] = catStats(c); done += r; total += n; }
+  return [done, total, total ? Math.round(100 * done / total) : 0];
+}
+function setMsg(id, text, kind) { const el = $(id); el.textContent = text || ""; el.className = "msg" + (kind ? " " + kind : ""); }
+function markDirty(v) { dirty = v; const s = $("status"); s.textContent = v ? "Unsaved changes" : ""; s.className = "status" + (v ? " dirty" : ""); }
+function normalize(j) {
+  if (!Array.isArray(j.milestones)) j.milestones = [];
+  if (!Array.isArray(j.journal)) j.journal = [];
+  for (const c of j.categories) if (!Array.isArray(c.tasks)) c.tasks = [];
+  return j;
+}
+function isOpen(kind, a, b) { return openEditor && openEditor[0] === kind && openEditor[1] === a && (b === undefined || openEditor[2] === b); }
+function whenClass(t) {
+  const st = t.status;
+  if (st === "done" || st === "closed") return st;
+  const n = daysUntil(t.date);
+  if (n === null) return st;
+  if (st === "doing" && n < 0) return st;
+  if (n < 0) return "overdue";
+  if (n <= SOON_DAYS) return "soon";
+  return st;
+}
+function whenText(t) {
+  const st = t.status;
+  if (!t.date) return STATUS_WORD[st] || "";
+  if (st === "done" || st === "closed") return prettyDate(t.date);
+  const n = daysUntil(t.date);
+  if (n === null) return t.date;
+  if (st === "doing" && n < 0) return `Since ${prettyDate(t.date)}`;
+  if (n < 0) return `${prettyDate(t.date)}, ${relDays(n)}`;
+  if (n <= SOON_DAYS) return `${prettyDate(t.date)}, ${relDays(n)}`;
+  return prettyDate(t.date);
+}
+
+// ---------- render ----------
+function render() {
+  $("title").textContent = DATA.title;
+  $("meta").textContent = `${DATA.owner}. Updated ${prettyDate(DATA.updated)}.${loadedFrom && loadedFrom !== "GitHub" ? " Loaded from " + loadedFrom + "." : ""}`;
+  $("horizon").textContent = DATA.horizon || "";
+  const tn = daysUntil(DATA.target);
+  $("countdown").textContent = DATA.target && tn !== null ? `Earliest filing window ${prettyDate(DATA.target)}, ${relDays(tn)}.` : "";
+  const [done, total, pct] = overall();
+  $("pct").textContent = pct + "%";
+  $("explain").textContent = `${done} of ${total} tasks done across the criteria being built. Supporting work below is tracked but not counted.`;
+
+  renderNextUp();
+  renderCriteria();
+  renderStones();
+  renderCategories();
+  renderJournal();
+
+  $("stoneadd").classList.toggle("hidden", !editing);
+  $("jform").classList.toggle("hidden", !editing);
+}
+
+function renderNextUp() {
+  const rows = [];
+  DATA.categories.forEach((cat, ci) => cat.tasks.forEach((t, ti) => {
+    const st = t.status;
+    if (st === "done" || st === "closed") return;
+    const n = daysUntil(t.date);
+    const dated = n !== null && n <= SOON_DAYS;
+    if (st === "doing" || st === "blocked" || st === "waiting" || dated) rows.push({ t, cat, n: (st === "doing" && n !== null && n < 0) ? null : n, ci, ti });
+  }));
+  const rank = { blocked: 0, doing: 1, waiting: 2, todo: 3 };
+  rows.sort((a, b) => {
+    const ad = a.n === null ? 1e9 : a.n, bd = b.n === null ? 1e9 : b.n;
+    if (ad !== bd) return ad - bd;
+    return (rank[a.t.status] ?? 9) - (rank[b.t.status] ?? 9);
+  });
+  $("nextup").innerHTML = rows.length ? rows.map(({ t, cat }) => `<li class="task ${t.status}">
+    <div class="dot ${t.status}"></div>
+    <div><div class="name">${esc(t.name)}</div><div class="where">${esc(cat.name)}${t.note ? ". " + esc(t.note) : ""}</div></div>
+    <div class="when ${whenClass(t)}">${esc(whenText(t))}</div>
+  </li>`).join("") : `<li class="empty">Nothing in motion. Pick a task and mark it in progress.</li>`;
+}
+
+function renderCriteria() {
+  const building = DATA.categories.filter(c => c.counts);
+  const bcrit = DATA.criteria.filter(c => c.state === "building");
+  const critIndex = new Map(bcrit.map((c, i) => [c.name, building[i] ? catStats(building[i]) : null]));
+  $("grid").innerHTML = DATA.criteria.map(c => {
+    const st = c.state;
+    let extra = "";
+    const s = critIndex.get(c.name);
+    if (st === "building" && s) extra = `<div class="mini"><span style="width:${s[1] ? Math.round(100 * s[0] / s[1]) : 0}%"></span></div>`;
+    const note = c.note && ["building", "testing", "pending"].includes(st) ? `<div class="state">${esc(c.note)}</div>` : "";
+    return `<div class="cell ${st}"><div class="name">${esc(c.name)}</div><div>${note}<div class="state">${CRIT_WORD[st] || st}</div>${extra}</div></div>`;
+  }).join("");
+}
+
+function renderStones() {
+  const stones = DATA.milestones;
+  const doneN = stones.filter(s => s.status === "done").length;
+  $("stonecount").textContent = stones.length ? `${doneN} of ${stones.length} reached` : "";
+  const order = stones.map((s, i) => i).sort((a, b) => (stones[a].date || "9999") < (stones[b].date || "9999") ? -1 : 1);
+  $("stones").innerHTML = stones.length ? order.map(i => {
+    const s = stones[i];
+    const n = daysUntil(s.date);
+    let cls = s.status === "done" ? "done" : (n !== null && n < 0 ? "overdue" : (n !== null && n <= 30 ? "soon" : ""));
+    const txt = s.status === "done" ? `Reached ${prettyDate(s.date)}` : (s.date ? `${prettyDate(s.date)}, ${relDays(n)}` : "No date");
+    return `<li class="${s.status === "done" ? "done" : ""}" data-stone="${i}">
+      <span class="name">${esc(s.name)}</span>
+      <span class="when ${cls}">${esc(txt)}</span>
+      ${isOpen("stone", i) ? stoneEditorHTML(s) : ""}
+    </li>`;
+  }).join("") : `<li class="empty">No milestones yet.</li>`;
+}
+function stoneEditorHTML(s) {
+  return `<div class="editor" data-editor style="grid-column:1 / -1">
+    <label>Milestone</label><input type="text" data-f="name" value="${esc(s.name)}">
+    <div class="row">
+      <div><label>Date (YYYY-MM-DD)</label><input type="text" data-f="date" value="${esc(s.date || "")}" placeholder="${today()}"></div>
+      <div><label>Status</label><select data-f="status"><option value="todo" ${s.status !== "done" ? "selected" : ""}>ahead</option><option value="done" ${s.status === "done" ? "selected" : ""}>reached</option></select></div>
+    </div>
+    <div class="actions"><button class="primary" data-apply>Apply</button><button data-cancel>Cancel</button><span class="spacer"></span><button class="danger" data-delete>Delete</button></div>
+  </div>`;
+}
+
+function renderCategories() {
+  $("categories").innerHTML = DATA.categories.map((cat, ci) => {
+    const [r, n] = catStats(cat);
+    const rows = cat.tasks.map((t, ti) => {
+      const st = t.status;
+      return `<li class="task ${st}" data-c="${ci}" data-t="${ti}">
+        <div class="dot ${st}"></div>
+        <div><div class="name">${esc(t.name)}</div>${t.note ? `<div class="note">${esc(t.note)}</div>` : ""}</div>
+        <div class="when ${whenClass(t)}">${esc(whenText(t))}</div>
+        ${isOpen("task", ci, ti) ? editorHTML(t, ti, cat.tasks.length) : ""}
+      </li>`;
+    }).join("");
+    return `<section class="category" id="${esc(cat.id)}">
+      <header><div><h2>${esc(cat.name)}</h2><div class="aside">${cat.counts ? "Counts toward readiness" : "Tracked, not counted"}</div></div><div class="count">${r} of ${n} done</div></header>
+      ${cat.why ? `<p class="why">${esc(cat.why)}</p>` : ""}
+      <div class="bar">${cat.tasks.map(t => `<i class="${t.status}"></i>`).join("")}</div>
+      <ul class="tasks">${rows || `<li class="empty">No tasks.</li>`}</ul>
+      ${editing ? `<div class="addtask"><button data-add="${ci}">Add task</button></div>` : ""}
+    </section>`;
+  }).join("");
+}
+function editorHTML(t, ti, len) {
+  const opts = STATUS_ORDER.map(s => `<option value="${s}" ${t.status === s ? "selected" : ""}>${s === "todo" ? "not started" : (STATUS_WORD[s] || s).toLowerCase()}</option>`).join("");
+  return `<div class="editor" data-editor>
+    <label>Task</label><input type="text" data-f="name" value="${esc(t.name)}">
+    <div class="row">
+      <div><label>Status</label><select data-f="status">${opts}</select></div>
+      <div><label>Date (YYYY-MM-DD, optional). Due date while open, completion date when done</label><input type="text" data-f="date" value="${esc(t.date || "")}" placeholder="${today()}"></div>
+    </div>
+    <label>Note (optional)</label><input type="text" data-f="note" value="${esc(t.note || "")}">
+    <div class="actions">
+      <button class="primary" data-apply>Apply</button><button data-cancel>Cancel</button>
+      <button data-move="-1" ${ti === 0 ? "disabled" : ""}>Move up</button><button data-move="1" ${ti >= len - 1 ? "disabled" : ""}>Move down</button>
+      <span class="spacer"></span><button class="danger" data-delete>Delete task</button>
+    </div>
+  </div>`;
+}
+
+function catName(id) { const c = DATA.categories.find(c => c.id === id); return c ? c.name : (id || ""); }
+function renderJournal() {
+  const j = DATA.journal;
+  $("journalcount").textContent = j.length ? `${j.length} entr${j.length === 1 ? "y" : "ies"}` : "";
+  const order = j.map((e, i) => i).sort((a, b) => (j[b].date || "") < (j[a].date || "") ? -1 : ((j[b].date || "") > (j[a].date || "") ? 1 : b - a));
+  $("journal").innerHTML = j.length ? order.map(i => {
+    const e = j[i];
+    return `<li data-j="${i}">
+      <div><div class="date">${esc(prettyDate(e.date))}</div><div class="tag">${esc(catName(e.cat))}</div></div>
+      <div class="text">${esc(e.text)}</div>
+      ${isOpen("journal", i) ? journalEditorHTML(e) : ""}
+    </li>`;
+  }).join("") : `<li class="empty">No entries yet. Add one every time something moves.</li>`;
+  const sel = $("j-cat");
+  if (editing) {
+    sel.innerHTML = `<option value="">General</option>` + DATA.categories.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("");
+    if (!$("j-date").value) $("j-date").value = today();
+  }
+}
+function journalEditorHTML(e) {
+  const opts = `<option value="">General</option>` + DATA.categories.map(c => `<option value="${esc(c.id)}" ${e.cat === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("");
+  return `<div class="editor" data-editor>
+    <div class="row">
+      <div><label>Date (YYYY-MM-DD)</label><input type="text" data-f="date" value="${esc(e.date || "")}"></div>
+      <div><label>Workstream</label><select data-f="cat">${opts}</select></div>
+    </div>
+    <label>Entry</label><textarea class="plain" data-f="text">${esc(e.text)}</textarea>
+    <div class="actions"><button class="primary" data-apply>Apply</button><button data-cancel>Cancel</button><span class="spacer"></span><button class="danger" data-delete>Delete entry</button></div>
+  </div>`;
+}
+
+// ---------- editing ----------
+function touched() { DATA.updated = today(); markDirty(true); }
+
+$("categories").addEventListener("click", (e) => {
+  if (!editing) return;
+  const add = e.target.closest("[data-add]");
+  if (add) {
+    const ci = +add.dataset.add;
+    DATA.categories[ci].tasks.push({ name: "New task", status: "todo" });
+    openEditor = ["task", ci, DATA.categories[ci].tasks.length - 1];
+    render(); return;
+  }
+  const li = e.target.closest("li.task");
+  if (!li) return;
+  const ci = +li.dataset.c, ti = +li.dataset.t;
+  const ed = e.target.closest("[data-editor]");
+  if (ed) {
+    const tasks = DATA.categories[ci].tasks;
+    if (e.target.closest("[data-apply]")) {
+      const t = tasks[ti];
+      const get = (f) => ed.querySelector(`[data-f="${f}"]`).value.trim();
+      const d = get("date");
+      if (d && !validDate(d)) { setMsg("appmsg", "Date must look like 2026-10-01.", "err"); return; }
+      t.name = get("name") || t.name;
+      t.status = get("status");
+      if (d) t.date = d; else delete t.date;
+      const n = get("note"); if (n) t.note = n; else delete t.note;
+      if (t.status === "done" && !t.date) t.date = today();
+      setMsg("appmsg", "");
+      openEditor = null; touched(); render();
+    } else if (e.target.closest("[data-cancel]")) {
+      openEditor = null; render();
+    } else if (e.target.closest("[data-delete]")) {
+      tasks.splice(ti, 1);
+      openEditor = null; touched(); render();
+    } else if (e.target.closest("[data-move]")) {
+      const dir = +e.target.closest("[data-move]").dataset.move;
+      const j = ti + dir;
+      if (j < 0 || j >= tasks.length) return;
+      [tasks[ti], tasks[j]] = [tasks[j], tasks[ti]];
+      openEditor = ["task", ci, j]; touched(); render();
+    }
+    return;
+  }
+  openEditor = isOpen("task", ci, ti) ? null : ["task", ci, ti];
+  render();
+});
+
+$("stones").addEventListener("click", (e) => {
+  if (!editing) return;
+  const li = e.target.closest("li[data-stone]");
+  if (!li) return;
+  const i = +li.dataset.stone;
+  const ed = e.target.closest("[data-editor]");
+  if (ed) {
+    if (e.target.closest("[data-apply]")) {
+      const s = DATA.milestones[i];
+      const get = (f) => ed.querySelector(`[data-f="${f}"]`).value.trim();
+      const d = get("date");
+      if (d && !validDate(d)) { setMsg("appmsg", "Date must look like 2026-10-01.", "err"); return; }
+      s.name = get("name") || s.name;
+      s.status = get("status");
+      if (d) s.date = d; else delete s.date;
+      if (s.status === "done" && !s.date) s.date = today();
+      setMsg("appmsg", "");
+      openEditor = null; touched(); render();
+    } else if (e.target.closest("[data-cancel]")) {
+      openEditor = null; render();
+    } else if (e.target.closest("[data-delete]")) {
+      DATA.milestones.splice(i, 1);
+      openEditor = null; touched(); render();
+    }
+    return;
+  }
+  openEditor = isOpen("stone", i) ? null : ["stone", i];
+  render();
+});
+$("stoneadd").addEventListener("click", (e) => {
+  if (!e.target.closest("[data-addstone]")) return;
+  DATA.milestones.push({ name: "New milestone", date: today(), status: "todo" });
+  openEditor = ["stone", DATA.milestones.length - 1];
+  render();
+});
+
+$("journal").addEventListener("click", (e) => {
+  if (!editing) return;
+  const li = e.target.closest("li[data-j]");
+  if (!li) return;
+  const i = +li.dataset.j;
+  const ed = e.target.closest("[data-editor]");
+  if (ed) {
+    if (e.target.closest("[data-apply]")) {
+      const en = DATA.journal[i];
+      const get = (f) => ed.querySelector(`[data-f="${f}"]`).value.trim();
+      const d = get("date");
+      if (!validDate(d)) { setMsg("appmsg", "Date must look like 2026-10-01.", "err"); return; }
+      en.date = d; en.text = get("text") || en.text;
+      const c = get("cat"); if (c) en.cat = c; else delete en.cat;
+      setMsg("appmsg", "");
+      openEditor = null; touched(); render();
+    } else if (e.target.closest("[data-cancel]")) {
+      openEditor = null; render();
+    } else if (e.target.closest("[data-delete]")) {
+      DATA.journal.splice(i, 1);
+      openEditor = null; touched(); render();
+    }
+    return;
+  }
+  if (e.target.closest("[data-editor]")) return;
+  openEditor = isOpen("journal", i) ? null : ["journal", i];
+  render();
+});
+$("j-add").addEventListener("click", () => {
+  const d = $("j-date").value.trim(), c = $("j-cat").value, t = $("j-text").value.trim();
+  if (!validDate(d)) return setMsg("appmsg", "Pick a date for the entry.", "err");
+  if (!t) return setMsg("appmsg", "Write the entry first.", "err");
+  const en = { date: d, text: t }; if (c) en.cat = c;
+  DATA.journal.push(en);
+  $("j-text").value = "";
+  setMsg("appmsg", "Entry added. Save to GitHub to keep it.", "ok");
+  touched(); render();
+});
+
+$("edit").addEventListener("click", () => {
+  editing = !editing;
+  document.body.classList.toggle("editing", editing);
+  $("edit").textContent = editing ? "Done editing" : "Edit";
+  if (!editing) openEditor = null;
+  render();
+});
+
+$("hidedone").addEventListener("change", () => {
+  document.body.classList.toggle("hidedone", $("hidedone").checked);
+  try { localStorage.setItem(HIDE_KEY, $("hidedone").checked ? "1" : ""); } catch {}
+});
+
+async function saveNow(message) {
+  setMsg("appmsg", "Encrypting and saving.");
+  const payload = await encryptJSON(DATA, PASS);
+  await ghPut(payload, message);
+  PAYLOAD = payload; cachePut(payload);
+  markDirty(false);
+  setMsg("appmsg", "Saved. The published page catches up within a minute.", "ok");
+}
+$("save").addEventListener("click", async () => {
+  try { await saveNow(`tracker: update ${DATA.updated}`); }
+  catch (e) { setMsg("appmsg", e.message, "err"); }
+});
+
+$("export").addEventListener("click", async () => {
+  const text = JSON.stringify(DATA, null, 2);
+  try { await navigator.clipboard.writeText(text); setMsg("appmsg", "JSON copied. Paste JSON brings an edited copy back.", "ok"); }
+  catch { $("importtext").value = text; $("importsheet").classList.remove("hidden"); setMsg("appmsg", "Clipboard blocked. Copy the JSON from the box below.", "ok"); }
+});
+
+function closeSheets() { for (const s of ["importsheet", "tokensheet", "passsheet"]) $(s).classList.add("hidden"); }
+$("import").addEventListener("click", () => { closeSheets(); $("importtext").value = ""; $("importsheet").classList.remove("hidden"); $("importtext").focus(); });
+$("importcancel").addEventListener("click", closeSheets);
+$("importgo").addEventListener("click", () => {
+  const text = $("importtext").value.trim();
+  if (!text) return;
+  try {
+    const j = JSON.parse(text); if (!j.categories || !j.criteria) throw new Error("no categories");
+    DATA = normalize(j); openEditor = null; markDirty(true); closeSheets(); render();
+    setMsg("appmsg", "Loaded. Tap Save to GitHub to keep it.", "ok");
+  } catch (e) { setMsg("appmsg", "That wasn't valid tracker JSON.", "err"); }
+});
+
+$("summary").addEventListener("click", async () => {
+  const text = summaryText();
+  try { await navigator.clipboard.writeText(text); setMsg("appmsg", "Summary copied as plain text.", "ok"); }
+  catch { $("importtext").value = text; $("importsheet").classList.remove("hidden"); setMsg("appmsg", "Clipboard blocked. Copy the summary from the box below.", "ok"); }
+});
+function summaryText() {
+  const [done, total, pct] = overall();
+  const L = [];
+  L.push(`${DATA.title}, status as of ${prettyDate(DATA.updated)}`);
+  L.push(`Readiness ${pct}% (${done} of ${total} counted tasks done).`);
+  if (DATA.target) L.push(`Earliest filing window ${prettyDate(DATA.target)}, ${relDays(daysUntil(DATA.target))}.`);
+  L.push("");
+  L.push("Criteria");
+  for (const c of DATA.criteria) L.push(`- ${c.name}: ${CRIT_WORD[c.state] || c.state}${c.note ? ". " + c.note : ""}`);
+  L.push("");
+  L.push("Next up");
+  const rows = [];
+  for (const cat of DATA.categories) for (const t of cat.tasks) {
+    if (t.status === "done" || t.status === "closed") continue;
+    const n = daysUntil(t.date);
+    if (["doing", "blocked", "waiting"].includes(t.status) || (n !== null && n <= SOON_DAYS)) rows.push(`- [${STATUS_WORD[t.status] || "Due"}] ${t.name} (${cat.name})${t.date ? ", " + prettyDate(t.date) : ""}${t.note ? ". " + t.note : ""}`);
+  }
+  L.push(...(rows.length ? rows : ["- nothing in motion"]));
+  if (DATA.milestones.length) {
+    L.push(""); L.push("Milestones");
+    for (const s of [...DATA.milestones].sort((a, b) => (a.date || "9999") < (b.date || "9999") ? -1 : 1)) L.push(`- ${s.status === "done" ? "Reached" : "Ahead"}: ${s.name}${s.date ? ", " + prettyDate(s.date) : ""}`);
+  }
+  for (const cat of DATA.categories) {
+    const [r, n] = catStats(cat);
+    L.push(""); L.push(`${cat.name} (${r} of ${n} done${cat.counts ? "" : ", not counted"})`);
+    for (const t of cat.tasks) L.push(`- ${t.status === "done" ? "x" : t.status === "closed" ? "-" : " "} ${t.name}${STATUS_WORD[t.status] && t.status !== "done" ? " [" + STATUS_WORD[t.status] + "]" : ""}${t.date ? ", " + prettyDate(t.date) : ""}${t.note ? ". " + t.note : ""}`);
+  }
+  if (DATA.journal.length) {
+    L.push(""); L.push("Journal, latest first");
+    const j = [...DATA.journal].sort((a, b) => (a.date || "") < (b.date || "") ? 1 : -1).slice(0, 10);
+    for (const e of j) L.push(`- ${prettyDate(e.date)}${e.cat ? " (" + catName(e.cat) + ")" : ""}: ${e.text}`);
+  }
+  return L.join("\n");
+}
+
+$("settings").addEventListener("click", () => { closeSheets(); $("tokentext").value = token(); $("tokensheet").classList.remove("hidden"); $("tokentext").focus(); });
+$("tokencancel").addEventListener("click", closeSheets);
+$("tokengo").addEventListener("click", () => {
+  const t = $("tokentext").value.trim();
+  if (t) localStorage.setItem(TOKEN_KEY, t); else localStorage.removeItem(TOKEN_KEY);
+  $("tokentext").value = ""; closeSheets();
+  setMsg("appmsg", t ? "Token saved on this device." : "Token cleared.", "ok");
+});
+
+$("passbtn").addEventListener("click", () => { closeSheets(); $("newpass").value = ""; $("newpass2").value = ""; $("passsheet").classList.remove("hidden"); $("newpass").focus(); });
+$("passcancel").addEventListener("click", closeSheets);
+$("passgo").addEventListener("click", async () => {
+  const p1 = $("newpass").value, p2 = $("newpass2").value;
+  if (p1.length < 8) return setMsg("appmsg", "Use at least 8 characters.", "err");
+  if (p1 !== p2) return setMsg("appmsg", "Passphrases don't match.", "err");
+  const old = PASS; PASS = p1;
+  try { await saveNow("tracker: passphrase change"); $("newpass").value = ""; $("newpass2").value = ""; closeSheets(); setMsg("appmsg", "Passphrase changed and saved. Use the new one everywhere from now on.", "ok"); }
+  catch (e) { PASS = old; setMsg("appmsg", e.message, "err"); }
+});
+
+$("lockbtn").addEventListener("click", () => {
+  if (dirty && !confirm("Unsaved changes will be lost. Lock anyway?")) return;
+  DATA = null; PASS = null; dirty = false; editing = false; openEditor = null;
+  document.body.classList.remove("editing"); $("edit").textContent = "Edit";
+  closeSheets(); markDirty(false); setMsg("appmsg", "");
+  show("lock"); $("pass").focus();
+});
+
+window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+// ---------- flows ----------
+function show(id) { for (const s of ["lock", "setup", "app"]) $(s).classList.toggle("hidden", s !== id); }
+
+let PAYLOAD = null;
+$("unlock").addEventListener("click", async () => {
+  const pass = $("pass").value;
+  if (!pass) return;
+  try {
+    setMsg("lockmsg", "Decrypting.");
+    DATA = normalize(await decryptJSON(PAYLOAD, pass));
+    PASS = pass; $("pass").value = "";
+    setMsg("lockmsg", "");
+    show("app"); render();
+  } catch { setMsg("lockmsg", "Wrong passphrase.", "err"); }
+});
+$("pass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("unlock").click(); });
+
+$("create").addEventListener("click", async () => {
+  const p1 = $("s-pass").value, p2 = $("s-pass2").value, tok = $("s-token").value.trim(), raw = $("s-json").value.trim();
+  if (p1.length < 8) return setMsg("setupmsg", "Use at least 8 characters.", "err");
+  if (p1 !== p2) return setMsg("setupmsg", "Passphrases don't match.", "err");
+  if (!tok) return setMsg("setupmsg", "Token is required to write data.json.", "err");
+  let j;
+  try { j = JSON.parse(raw); if (!j.categories) throw 0; } catch { return setMsg("setupmsg", "Paste the progress.json contents.", "err"); }
+  try {
+    localStorage.setItem(TOKEN_KEY, tok);
+    setMsg("setupmsg", "Encrypting and saving.");
+    const payload = await encryptJSON(j, p1);
+    await ghPut(payload, "tracker: initial data");
+    DATA = normalize(j); PASS = p1; PAYLOAD = payload; cachePut(payload);
+    show("app"); render();
+  } catch (e) { setMsg("setupmsg", e.message, "err"); }
+});
+
+(async function boot() {
+  try { if (localStorage.getItem(HIDE_KEY)) { $("hidedone").checked = true; document.body.classList.add("hidedone"); } } catch {}
+  try {
+    PAYLOAD = await loadPayload();
+    if (!PAYLOAD) { show("setup"); return; }
+    show("lock"); $("pass").focus();
+  } catch (e) {
+    show("lock"); setMsg("lockmsg", "Couldn't load data.json. " + e.message, "err");
+  }
+})();
+</script>
+</body>
+</html>
