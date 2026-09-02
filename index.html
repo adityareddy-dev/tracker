@@ -168,12 +168,13 @@ footer { margin-top: 28px; font-size: 12px; color: var(--muted); }
 <div id="lock" class="hidden">
   <h1>Tracker</h1>
   <p class="meta">Private page. Nothing renders without the passphrase.</p>
-  <div class="panel">
+  <form class="panel" id="lockform" autocomplete="on">
+    <input type="text" name="username" value="tracker" autocomplete="username" readonly hidden aria-hidden="true" tabindex="-1">
     <label for="pass">Passphrase</label>
-    <input id="pass" type="password" autocomplete="current-password">
-    <div class="toolbar"><button id="unlock" class="primary">Unlock</button></div>
+    <input id="pass" name="password" type="password" autocomplete="current-password">
+    <div class="toolbar"><button id="unlock" type="submit" class="primary">Unlock</button></div>
     <div id="lockmsg" class="msg"></div>
-  </div>
+  </form>
 </div>
 
 <div id="setup" class="hidden">
@@ -845,7 +846,8 @@ window.addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault()
 function show(id) { for (const s of ["lock", "setup", "app"]) $(s).classList.toggle("hidden", s !== id); }
 
 let PAYLOAD = null;
-$("unlock").addEventListener("click", async () => {
+$("lockform").addEventListener("submit", async (e) => {
+  e.preventDefault();
   const pass = $("pass").value;
   if (!pass) return;
   try {
@@ -856,7 +858,6 @@ $("unlock").addEventListener("click", async () => {
     show("app"); render();
   } catch { setMsg("lockmsg", "Wrong passphrase.", "err"); }
 });
-$("pass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("unlock").click(); });
 
 $("create").addEventListener("click", async () => {
   const p1 = $("s-pass").value, p2 = $("s-pass2").value, tok = $("s-token").value.trim(), raw = $("s-json").value.trim();
@@ -875,12 +876,22 @@ $("create").addEventListener("click", async () => {
   } catch (e) { setMsg("setupmsg", e.message, "err"); }
 });
 
+function tokenFromLink() {
+  // Open the page as .../tracker/#token=<fine-grained token> once per device to store it. Fragments never reach the server.
+  const m = /(?:^|[#&])token=([^&]+)/.exec(location.hash || "");
+  if (!m) return false;
+  try { localStorage.setItem(TOKEN_KEY, decodeURIComponent(m[1]).trim()); } catch {}
+  history.replaceState(null, "", location.pathname + location.search);
+  return true;
+}
 (async function boot() {
+  const applied = tokenFromLink();
   try { if (localStorage.getItem(HIDE_KEY)) { $("hidedone").checked = true; document.body.classList.add("hidedone"); } } catch {}
   try {
     PAYLOAD = await loadPayload();
     if (!PAYLOAD) { show("setup"); return; }
     show("lock"); $("pass").focus();
+    if (applied) setMsg("lockmsg", "Token saved on this device.", "ok");
   } catch (e) {
     show("lock"); setMsg("lockmsg", "Couldn't load data.json. " + e.message, "err");
   }
