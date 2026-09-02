@@ -12,7 +12,7 @@
 //   node cli.mjs categories                             ids to use with add and journal
 //
 // Passphrase: TRACKER_PASS, else the macOS keychain item "tracker-passphrase".
-// Token: GH_TOKEN, else `gh auth token`. Add --dry to any change to see it without saving.
+// Token: GH_TOKEN, else the keychain item "tracker-token" (fine-grained, this repo only), else `gh auth token`. Add --dry to any change to see it without saving.
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { webcrypto as crypto } from "node:crypto";
@@ -43,8 +43,9 @@ function passphrase() {
 }
 function token() {
   if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
+  try { return sh("security", ["find-generic-password", "-s", "tracker-token", "-w"]); } catch {}
   try { return sh("gh", ["auth", "token"]); }
-  catch { die("No GitHub token. Run gh auth login or set GH_TOKEN."); }
+  catch { die("No GitHub token. Add a keychain item named tracker-token, run gh auth login, or set GH_TOKEN."); }
 }
 function validDate(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s); }
 
